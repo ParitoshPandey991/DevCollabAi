@@ -282,7 +282,7 @@ const AssignedTicket = () => {
         </div>
       </div>
 
-      <style jsx="true">{`
+      <style >{`
         @keyframes fade-in-up {
           from {
             opacity: 0;

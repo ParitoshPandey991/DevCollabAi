@@ -4,6 +4,9 @@ class APIService {
   async request(endpoint, options = {}) {
     const token = localStorage.getItem('token');
     const url = `${API_BASE}${endpoint}`;
+
+    console.log('dhfhhf', API_BASE, url);
+    
     
     const config = {
       headers: {
@@ -17,9 +20,11 @@ class APIService {
       config.body = JSON.stringify(config.body);
     }
 
+
+    
     const response = await fetch(url, config);
     const data = await response.json();
-
+    console.log('responsewwww:',data)
     if (!response.ok) {
       window.location.href = '/server-down'
     }
@@ -36,6 +41,8 @@ class APIService {
   }
 
   signup(userData) {
+  
+    
     return this.request('/auth/signup', {
       method: 'POST',
       body: userData,

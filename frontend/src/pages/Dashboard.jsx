@@ -60,17 +60,19 @@ const Dashboard = () => {
 
   const fetchTickets = async () => {
     setLoading(true)
-    try {
+    
         const response  = await apiService.getUserTickets(token)
-
+        console.log(response)
+       if(response){
         setTickets(response)
-        calculateStats(response)
+        calculateStats(response)}
+        else{
+          setTickets([])
+        }
         
-    } catch (error) {
-      console.error("Error fetching tickets:", error)
-    } finally {
+   
       setLoading(false)
-    }
+    
   }
 
   const handleLogout = async () => {
@@ -86,16 +88,19 @@ const Dashboard = () => {
 
   const fetchAssignedTickets = async () => {
      setLoading(true)
-    try {
+  
       const response = await apiService.getAssignedTickets(token)
+      
+      if(response.length > 0){
       setAssignedTickets(response)
-      calculateStats(response)
-    } catch (error) {
-      console.error("Error fetching assigned tickets:", error)
-    }
-    finally{
+      calculateStats(response)}
+      
+  else{
+       setTickets([]) }
+  
+    
       setLoading(false)
-    }
+    
   }
 
   const calculateStats = (tickets) => {
@@ -465,7 +470,7 @@ if (user?.role === "moderator") {
         </div>
       </div>
 
-      <style jsx="true">{`
+      <style >{`
         .dashboard-container {
           min-height: 100vh;
           background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);

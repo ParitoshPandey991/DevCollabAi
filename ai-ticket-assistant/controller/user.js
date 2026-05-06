@@ -6,6 +6,8 @@ import Ticket from '../models/ticket.js'
  
 export const signupUser = async (req, res) => {
     const { email, password,skills=[],role} = req.body;
+    console.log("body",req.body);
+    
     if (!email || !password || !role) {
         return res.status(400).json({ error: "All fields are required" });
     }   
@@ -39,7 +41,8 @@ export const signupUser = async (req, res) => {
         return res.json({token, user: newUser});
 
     } catch (error) {
-         res.status(500).json({ error: "Internal server error in signup",details: error.message });
+   
+         res.status(500).json({ error: "Internal server error in signup", details: error.message });
     }
 }
 

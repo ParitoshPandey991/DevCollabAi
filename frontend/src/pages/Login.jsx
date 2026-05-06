@@ -198,7 +198,7 @@ const Login = () => {
         </div>
       </div>
 
-      <style jsx="true">{`
+      <style >{`
         .login-container {
           min-height: 100vh;
           background: linear-gradient(135deg, #1b0c2e 0%, #210e3f 50%, #100c24 100%);

@@ -74,6 +74,8 @@ const Signup = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
+    
+    
     try {
       const response = await apiService.signup(formData)
       login(response.user, response.token)
@@ -418,7 +420,7 @@ const Signup = () => {
         </div>
       </div>
 
-      <style jsx>{`
+      <style>{`
         .signup-container {
           min-height: 100vh;
           background: linear-gradient(135deg, #1b0c2e 0%, #210e3f 50%, #100c24 100%);

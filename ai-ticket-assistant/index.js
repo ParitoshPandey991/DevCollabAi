@@ -11,16 +11,18 @@ import { onTicketCreate } from './inngest/functions/on-ticket-create.js';
 dotenv.config(); // 🔥 Must be before any env access
 
 const app = express();
-app.use(cors({
-  origin:process.env.APP_URL || "http://localhost:5173",
-}));
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
-
 
 const PORT = process.env.PORT || 3000;
 
 console.log("🔍 MONGO_URI:", process.env.MONGO_URI);
+console.log(process.env.APP_URL);
+
+app.use(cors({
+  origin: process.env.APP_URL,
+}));
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+
 
 
 app.use("/auth",userRoutes)

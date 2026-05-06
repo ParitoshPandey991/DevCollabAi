@@ -33,7 +33,7 @@ function AppContent() {
       <Router>
         
         <Routes>
-           <Route path="/" element={<Home/>} />
+          <Route path="/" element={<Home/>} />
           <Route path="/login" element={!user ? <Login /> : <Navigate to="/dashboard" />} />
           <Route path="/signup" element={!user ? <Signup /> : <Navigate to="/dashboard" />} />
           <Route path="/dashboard" element={user ? <Dashboard /> : <Navigate to="/login" />} />

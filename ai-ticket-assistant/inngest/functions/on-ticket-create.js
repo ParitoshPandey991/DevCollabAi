@@ -6,100 +6,116 @@ import User from "../../models/user.js"
 import { sendEmail } from "../../utils/mailer.js"
 import user from "../../models/user.js"
 export const onTicketCreate = inngest.createFunction(
-    {id: "on-ticket-create",retries: 3},
-    {event: "ticket/create"},
-    async ({event, step}) => {
-         try {
-            
-            const {ticketId} = event.data
-       const ticket =  await step.run('get-ticket', async () => {
-             const ticketObj = await  Ticket.findById(ticketId)
-         if (!ticketObj) {
-            throw new NonRetriableError('Ticket not found')
-         }
+  {
+    id: "on-ticket-create",
+    retries: 3,
+    triggers: [{ event: "ticket/create" }], // ✅ FIXED
+  },
+  async ({ event, step }) => {
+    try {
+      const { ticketId } = event.data;
 
-         return ticketObj
-        })
+      const ticket = await step.run("get-ticket", async () => {
+        const ticketObj = await Ticket.findById(ticketId);
+        if (!ticketObj) {
+          throw new NonRetriableError("Ticket not found");
+        }
+        return ticketObj;
+      });
 
-        await step.run("update-ticket-status", async () => {
-            await Ticket.findByIdAndUpdate(ticket._id, {
-                status: 'TODO',
-            })
-        })
+      await step.run("update-ticket-status", async () => {
+        await Ticket.findByIdAndUpdate(ticket._id, {
+          status: "TODO",
+        });
+      });
 
-        const airesponse = await analyzeTicket(ticket)
-        const relatedSkills = await step.run("ai-processing",async () => {
-            let skills =[]
-            if(airesponse){
-               await Ticket.findByIdAndUpdate(ticket._id, {
-                priority:["High", "Medium", "Low"].includes(airesponse.priority) ? airesponse.priority : 'Medium',
-                helpfulNotes: airesponse.helpfulNotes,
-                relatedSkills: airesponse.relatedSkills,
-                status:"IN_PROGRESS",
-               })
+      const airesponse = await analyzeTicket(ticket);
 
-               skills = Array.isArray(airesponse.relatedSkills) ? airesponse.relatedSkills : []
+      const relatedSkills = await step.run("ai-processing", async () => {
+        let skills = [];
 
-            }
+        if (airesponse) {
+          await Ticket.findByIdAndUpdate(ticket._id, {
+            priority: ["High", "Medium", "Low"].includes(airesponse.priority)
+              ? airesponse.priority
+              : "Medium",
+            helpfulNotes: airesponse.helpfulNotes,
+            relatedSkills: airesponse.relatedSkills,
+            status: "IN_PROGRESS",
+          });
 
-            return skills
-        })
-
-
-const moderator = await step.run("assign-ticket", async () => {
-  if (relatedSkills.length === 0) {
-    // No skills found by AI, cancel the ticket
-    await Ticket.findByIdAndUpdate(ticket._id, {
-      status: "CANCELLED",
-      helpfulNotes: (airesponse && airesponse.helpfulNotes) || "AI could not determine skills.",
-    });
-    throw new NonRetriableError("No skills detected from AI response. Ticket cancelled.");
-  }
-
-  const regexSkills = relatedSkills.map(skill => new RegExp(skill, 'i'));
-  const user = await User.findOne({
-    role: 'moderator',
-    skills: { $in: regexSkills }
-  });
-
-  if (!user) {
-    // No moderator found with those skills, cancel the ticket
-    await Ticket.findByIdAndUpdate(ticket._id, {
-      status: "CANCELLED",
-      helpfulNotes: (airesponse && airesponse.helpfulNotes) || "No moderator available with required skills.",
-    });
-    throw new NonRetriableError("No moderator found with the required skills. Ticket cancelled.");
-  }
-
-  // Assign moderator to ticket
-  await Ticket.findByIdAndUpdate(ticket._id, {
-    assignedTo: user._id,
-  });
-
-  return user;
-});
-
-
-        await step.run("notify-assigned-user", async () => {
-            if (moderator) {
-                const finalTicket = await Ticket.findById(ticket._id)
-                await sendEmail(moderator.email, "Ticket Assigned", `You have been assigned a new ticket: ${finalTicket.title}. Please check your dashboard for details.`)
-         }
-
+          skills = Array.isArray(airesponse.relatedSkills)
+            ? airesponse.relatedSkills
+            : [];
         }
 
-     
-        )
-        await step.run("finalstatus",async()=>{
-              if(moderator){
-                 await Ticket.findByIdAndUpdate({_id:ticket._id},{status:"ASSIGNED"})
-              }
-        })
-        
-         return { success: true,}
-         } catch (error) {
-            console.error("Error in onTicketCreate function:", error)
-            return { success: false}
-         }
+        return skills;
+      });
+
+      const moderator = await step.run("assign-ticket", async () => {
+        if (relatedSkills.length === 0) {
+          await Ticket.findByIdAndUpdate(ticket._id, {
+            status: "CANCELLED",
+            helpfulNotes:
+              airesponse?.helpfulNotes ||
+              "AI could not determine skills.",
+          });
+          throw new NonRetriableError(
+            "No skills detected. Ticket cancelled."
+          );
+        }
+
+        const regexSkills = relatedSkills.map(
+          (skill) => new RegExp(skill, "i")
+        );
+
+        const user = await User.findOne({
+          role: "moderator",
+          skills: { $in: regexSkills },
+        });
+
+        if (!user) {
+          await Ticket.findByIdAndUpdate(ticket._id, {
+            status: "CANCELLED",
+            helpfulNotes:
+              airesponse?.helpfulNotes ||
+              "No moderator available.",
+          });
+          throw new NonRetriableError(
+            "No moderator found. Ticket cancelled."
+          );
+        }
+
+        await Ticket.findByIdAndUpdate(ticket._id, {
+          assignedTo: user._id,
+        });
+
+        return user;
+      });
+
+      await step.run("notify-assigned-user", async () => {
+        if (moderator) {
+          const finalTicket = await Ticket.findById(ticket._id);
+          await sendEmail(
+            moderator.email,
+            "Ticket Assigned",
+            `You have been assigned a new ticket: ${finalTicket.title}`
+          );
+        }
+      });
+
+      await step.run("finalstatus", async () => {
+        if (moderator) {
+          await Ticket.findByIdAndUpdate(ticket._id, {
+            status: "ASSIGNED",
+          });
+        }
+      });
+
+      return { success: true };
+    } catch (error) {
+      console.error("Error in onTicketCreate:", error);
+      return { success: false };
     }
-)
+  }
+);
